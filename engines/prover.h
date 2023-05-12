@@ -48,6 +48,8 @@ class Prover
 
   virtual ProverResult prove();
 
+  virtual void dump_query_until(int reached_k, int k) {};
+
   virtual ProverResult check_until(int k) = 0;
 
   virtual bool witness(std::vector<smt::UnorderedTermMap> & out);

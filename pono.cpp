@@ -23,6 +23,7 @@
 #endif
 
 #include "smt-switch/boolector_factory.h"
+#include "smt-switch/smtlib_reader.h"
 #ifdef WITH_MSAT
 #include "smt-switch/msat_factory.h"
 #endif
@@ -146,7 +147,10 @@ ProverResult check_prop(PonoOptions pono_options,
   }
   else
   {
-    r = prover->check_until(pono_options.bound_);
+    if (pono_options.dump_)
+      prover->dump_query_until(pono_options.reached_k_, pono_options.bound_);
+    else
+      r = prover->check_until(pono_options.bound_);
   }
 
   if (r == FALSE && pono_options.witness_) {

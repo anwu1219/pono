@@ -66,6 +66,8 @@ set(SMT_SWITCH_DIR "${PROJECT_SOURCE_DIR}/deps/smt-switch")
 # rely on cmake modules from smt-switch (required anyway)
 set(CMAKE_MODULE_PATH ${SMT_SWITCH_DIR}/cmake)
 
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+
 find_package(GMP REQUIRED)
 
 # Check that dependencies are there

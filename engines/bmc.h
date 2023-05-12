@@ -34,6 +34,7 @@ public:
   void initialize() override;
 
   ProverResult check_until(int k) override;
+  void dump_query_until(int reached_k, int k) override;
 
  protected:
   bool step(int i);
@@ -45,6 +46,7 @@ public:
   unsigned int bound_step_;
   // Used in binary search for cex: number of times we called 'solver->push()'
   unsigned int bin_search_frames_;
+
   // Get an upper bound on the cex, which is located in interval '[lb,ub]'
   int bmc_interval_get_cex_ub(const int lb, const int ub);
   // Add negated bad state predicate for all bounds in interval '[start,end]'.

@@ -14,7 +14,10 @@
  **
  **/
 
+#include <filesystem>
+
 #include "bmc.h"
+
 #include "utils/logger.h"
 
 using namespace smt;
@@ -50,6 +53,71 @@ void Bmc::initialize()
   solver_->assert_formula(unroller_.at_time(ts_.init(), 0));
 }
 
+void Bmc::dump_query_until(int reached_k, int k)
+{
+  initialize();
+
+  //NOTE: there is a corner case where an instance is trivially
+  //unsatisfiable, i.e., safe, when the conjunction of initial state
+  //predicate and transition (+ any constraints) is already unsat. We
+  //could also check this using unsat core functionality of solver (if
+  //supported), and check if bad state predicate is in core
+
+  logger.log(1, "BMC bound_start_: {} ", bound_start_);
+  logger.log(1, "BMC bound_step_: {} ", bound_step_);
+
+  // Options 'bmc_exponential_step_' results in doubling the bound in every step
+  const bool exp_step = options_.bmc_exponential_step_;
+
+  for (int i = 0; i <= k; ++i) {
+    if (i > 0) {
+      logger.log(2, "  BMC adding transition for i-1 = {}", i-1);
+      solver_->assert_formula(unroller_.at_time(ts_.trans(), i-1));
+      if (options_.bmc_neg_init_step_) {
+        logger.log(2, "  BMC adding negated init constraint for step {}", i);
+        Term not_init = solver_->make_term(PrimOp::Not, unroller_.at_time(ts_.init(), i));
+        solver_->assert_formula(not_init);
+      }
+    }
+
+    if (i <= reached_k) {
+      // Optional: add negated bad state predicates to bounds where no cex was found
+      assert(!options_.bmc_neg_bad_step_);
+      if (options_.bmc_neg_bad_step_all_) {
+        Term not_bad;
+        logger.log(2, "  BMC adding negated bad state constraint for i = {}", i);
+        not_bad = solver_->make_term(PrimOp::Not, unroller_.at_time(bad_, i));
+        solver_->assert_formula(not_bad);
+      }
+    }
+  }
+
+  // BMC is guaranteed to find a cex if we make sure to check all bounds (default).
+  // This behavior can be overridden by 'options_.bmc_single_bad_state_'
+  const int cex_guarantee = !options_.bmc_single_bad_state_;
+
+  Term clause;
+  if (cex_guarantee) {
+    // Make sure we cover *all* states by adding disjunctive bad state predicate
+    clause = solver_->make_term(false);
+    for (int j = reached_k + 1; j <= k; j++) {
+      logger.log(2, "  BMC adding bad state constraint for j = {}", j);
+      clause = solver_->make_term(PrimOp::Or, clause, unroller_.at_time(bad_, j));
+    }
+  } else {
+    // Add a single bad state predicate (bugs might be missed)
+    logger.log(2, "  BMC adding bad state constraint for k = {}", k);
+    clause = unroller_.at_time(bad_, k);
+  }
+
+  solver_->assert_formula(clause);
+
+  std::string filename = options_.working_directory_ + "/step" + std::to_string(k) +
+    "_reached" + std::to_string(reached_k) + ".smt2";
+  logger.log(2, "  Dumping full BMC problem for k = {}, {}", k, filename);
+  solver_->dump_smt2(filename);
+}
+
 ProverResult Bmc::check_until(int k)
 {
   initialize();
@@ -79,7 +147,7 @@ ProverResult Bmc::check_until(int k)
 bool Bmc::step(int i)
 {
   logger.log(1, "\nBMC checking at bound: {}", i);
-  
+
   if (i <= reached_k_) {
     return true;
   }
@@ -118,9 +186,9 @@ bool Bmc::step(int i)
     logger.log(2, "  BMC adding bad state constraint for i = {}", i);
     clause = unroller_.at_time(bad_, i);
   }
-  
-  solver_->assert_formula(clause); 
- 
+
+  solver_->assert_formula(clause);
+
   Result r = solver_->check_sat();
   if (r.is_sat()) {
     logger.log(1, "  BMC check at bound {} satisfiable", i);
@@ -198,9 +266,9 @@ int Bmc::bmc_interval_get_cex_ub(const int lb, const int ub)
 {
   const Term true_term = solver_->make_term(true);
   assert(lb <= ub);
-  
+
   logger.log(2, "  BMC get cex upper bound: lower bound = {}, upper bound = {} ", lb, ub);
-  
+
   int j;
   for (j = lb; j <= ub; j++) {
     Term bad_state_at_j = unroller_.at_time(bad_, j);

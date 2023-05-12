@@ -90,7 +90,10 @@ enum optionIndex
   KIND_NO_IND_CHECK,
   KIND_NO_IND_CHECK_PROPERTY,
   KIND_ONE_TIME_BASE_CHECK,
-  KIND_BOUND_STEP
+  KIND_BOUND_STEP,
+  WORKING_DIRECTORY,
+  REACHED_K,
+  DUMP,
 };
 
 struct Arg : public option::Arg
@@ -586,6 +589,24 @@ const option::Descriptor usage[] = {
     "  --kind-bound-step \tAmount by which bound (unrolling depth) "
     "is increased in k-induction (default: 1)"
     },
+  { WORKING_DIRECTORY,
+    0,
+    "",
+    "working-dir",
+    Arg::NonEmpty,
+    "  --working-dir \tWorking directory." },
+  { REACHED_K,
+    0,
+    "",
+    "reached-k",
+    Arg::Numeric,
+    "  --reached-k \tReached K." },
+  { DUMP,
+    0,
+    "",
+    "dump",
+    Arg::None,
+    "  --dump \tDump the BMC query." },
   { 0, 0, 0, 0, 0, 0 }
 };
 /*********************************** end Option Handling setup
@@ -604,6 +625,8 @@ const std::unordered_set<Engine> ic3_variants_set({ IC3_BOOL,
 const std::unordered_set<Engine> & ic3_variants() { return ic3_variants_set; }
 
 const std::string PonoOptions::default_profiling_log_filename_ = "";
+
+const std::string PonoOptions::default_working_directory_ = "./";
 
 Engine PonoOptions::to_engine(std::string s)
 {
@@ -771,7 +794,10 @@ ProverResult PonoOptions::parse_and_set_options(int argc,
 	  kind_no_ind_check_init_states_ = true; kind_no_ind_check_property_ = true; break;
         case KIND_NO_IND_CHECK_PROPERTY: kind_no_ind_check_property_ = true; break;
         case KIND_ONE_TIME_BASE_CHECK: kind_one_time_base_check_ = true; break;
-        case KIND_BOUND_STEP: kind_bound_step_ = atoi(opt.arg);
+        case KIND_BOUND_STEP: kind_bound_step_ = atoi(opt.arg); break;
+        case WORKING_DIRECTORY: working_directory_ = opt.arg; break;
+        case REACHED_K: reached_k_ = atoi(opt.arg); break;
+        case DUMP: dump_ = true; break;
 	  if (kind_bound_step_ == 0)
 	    throw PonoException("--kind-bound-step must be greater than 0");
 	  break;

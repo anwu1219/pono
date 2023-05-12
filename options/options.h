@@ -149,7 +149,10 @@ class PonoOptions
         kind_no_ind_check_(default_kind_no_ind_check_),
         kind_no_ind_check_property_(default_kind_no_ind_check_property_),
         kind_one_time_base_check_(default_kind_one_time_base_check_),
-        kind_bound_step_(default_kind_bound_step_)
+        kind_bound_step_(default_kind_bound_step_),
+        working_directory_(default_working_directory_),
+        reached_k_(default_reached_k_),
+        dump_(default_dump_)
   {
   }
 
@@ -291,6 +294,15 @@ class PonoOptions
   // K-induction: amount of steps by which transition relation is unrolled
   unsigned kind_bound_step_;
 
+  // Working directory, where to dump the smt2 files generated during run
+  std::string working_directory_;
+
+  // Reached K
+  int reached_k_;
+
+  // Save
+  bool dump_;
+
 private:
   // Default options
   static const Engine default_engine_ = BMC;
@@ -358,6 +370,10 @@ private:
   static const bool default_kind_no_ind_check_property_ = false;
   static const bool default_kind_one_time_base_check_ = false;
   static const unsigned default_kind_bound_step_ = 1;
+
+  static const std::string default_working_directory_;
+  static const int default_reached_k_ = -1;
+  static const bool default_dump_ = false;
 };
 
 // Useful functions for printing etc...
